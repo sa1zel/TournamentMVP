@@ -3,9 +3,12 @@ package com.company.models.results;
 import com.company.models.PlayerScore;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-public class HandballResult implements SportResult {
+public class HandballResult extends SportResult {
     private List<HandballPlayerStats> handballPlayersStatistics;
 
     public HandballResult(List<HandballPlayerStats> handballUserStatistics) {
@@ -14,38 +17,30 @@ public class HandballResult implements SportResult {
 
     @Override
     public List<PlayerScore> getPlayersResults() {
-        String firstTeamName = "";
-        String secondTeamName = "";
-        int firstTeamScore = 0;
-        int secondTeamScore = 0;
-        List<PlayerScore> firstTeamCountedResult = new ArrayList<>();
-        List<PlayerScore> secondTeamCountedResult = new ArrayList<>();
+        Map<String, Integer> countedResult = new HashMap<>();
 
         for (HandballPlayerStats playerStats : handballPlayersStatistics) {
-            int userRatingPoints = playerStats.goalsMade * 2 - playerStats.goalsReceived;
-            PlayerScore currentUserResult = new PlayerScore(playerStats.nickname, userRatingPoints);
-            if (firstTeamName.isBlank()) {
-                firstTeamName = playerStats.teamName;
-            } else if (!firstTeamName.equals(playerStats.teamName)
-                    && secondTeamName.isBlank()) {
-                secondTeamName = playerStats.teamName;
-            }
-            if (firstTeamName.equals(playerStats.teamName)) {
-                firstTeamScore += playerStats.goalsMade;
-                firstTeamCountedResult.add(currentUserResult);
-            } else if (secondTeamName.equals(playerStats.teamName)) {
-                secondTeamScore += playerStats.goalsMade;
-                secondTeamCountedResult.add(currentUserResult);
-            } else throw new IllegalArgumentException("More than 2 teams");
+            int playerRatingPoints = playerStats.getGoalsMade() * 2 - playerStats.getGoalsReceived();
+            countedResult.put(playerStats.nickname, playerRatingPoints);
         }
 
-        if (firstTeamScore > secondTeamScore) {
-            firstTeamCountedResult.forEach(result -> result.score += 10);
-        } else if (firstTeamScore < secondTeamScore) {
-            secondTeamCountedResult.forEach(result -> result.score += 10);
-        } else throw new IllegalArgumentException("No winner team");
+        String winnerTeam = countWinnerTeam(handballPlayersStatistics);
 
-        firstTeamCountedResult.addAll(secondTeamCountedResult);
-        return firstTeamCountedResult;
+        handballPlayersStatistics.stream()
+                .filter(playerStat -> playerStat.teamName.equals(winnerTeam))
+                .forEach(playerStats -> countedResult.put(playerStats.nickname, countedResult.get(playerStats.nickname) + winnerTeamPayment));
+
+        return countedResult.entrySet().stream()
+                .map(entry -> new PlayerScore(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
     }
+
+    @Override
+    public int getTeamScore(String teamName) {
+        return handballPlayersStatistics.stream()
+                .filter(playerStats -> playerStats.teamName.equals(teamName))
+                .mapToInt(HandballPlayerStats::getGoalsMade).sum();
+    }
+
+
 }
