@@ -13,7 +13,7 @@ public abstract class SportResult {
     public abstract int getTeamScore(String teamName);
 
     protected String countWinnerTeam(List<? extends SportStats> playerStatistics){
-        String winner = "";
+        String winner;
         Set<String> teams = playerStatistics.stream()
                 .map(SportStats::getTeamName)
                 .collect(Collectors.toSet());
